@@ -1,5 +1,6 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
+import { encrypt } from 'src/core/auth/helper/cryption';
 import { Response } from 'src/core/concrete/response';
 import { UsersDso } from '../dsos/user.dso';
 import { CreateUsersDto } from '../dtos/create-users.dto';
@@ -34,7 +35,11 @@ export class UsersService {
   }
 
   async store(user: CreateUsersDto): Promise<Response<UsersDso>> {
-    const users = await this.model.create({ ...user, isActive: true });
+    const users = await this.model.create({
+      ...user,
+      password: await encrypt(user.password),
+      isActive: true,
+    });
     return new Response<Users>(users);
   }
 
@@ -48,7 +53,21 @@ export class UsersService {
 
   async delete(id: number) {
     const user = await this.model.findOne({ where: { id } });
-    const deleted = await this.model.update({ ...user, isActive: false }, { where: { id } });
+    const deleted = await this.model.update(
+      { ...user, password: await encrypt(user.password), isActive: false },
+      { where: { id } },
+    );
     return deleted;
+  }
+
+  public async findByEmail(email: string): Promise<Users | null> {
+    const user = await this.model.findOne({
+      attributes: ['email', 'password'],
+      where: {
+        email: email,
+        isActive: true,
+      },
+    });
+    return user;
   }
 }
