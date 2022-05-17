@@ -15,4 +15,8 @@ export class Users extends Model<Users>
     password: string;
     @Column({ allowNull: false })
     isActive: boolean;
+    @Column({ allowNull: false })
+    confirmationCode: string;
+    @Column({ allowNull: false })
+    isEmailConfirmed: boolean;
 }

@@ -79,4 +79,14 @@ export class UsersController {
   async delete(@Param() params) {
     return await this.service.delete(params.id);
   }
+
+  @ApiOperation({
+    summary: 'Confirm User Email',
+    description: '[AuthRequired] Confirm User Email',
+  })
+  @ApiParam({ name: 'token' })
+  @Get('confirm/:token')
+  async confirm(@Param() params) {
+    return await this.service.confirmEmail(params.token);
+  }
 }

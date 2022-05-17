@@ -1,17 +1,21 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { encrypt } from 'src/core/auth/helper/cryption';
+import { encrypt } from 'src/core/helper/cryption';
 import { Response } from 'src/core/concrete/response';
 import { UsersDso } from '../dsos/user.dso';
 import { CreateUsersDto } from '../dtos/create-users.dto';
 import { UpdateUsersDto } from '../dtos/update-users.dto';
 import { Users } from '../models/users.model';
+import { Network } from 'src/core/helper/send-email';
+import { generateToken } from 'src/core/helper/generate-token';
+import { ErrorResponse } from 'src/core/auth/common/error-response';
 
 @Injectable()
 export class UsersService {
   constructor(
     @InjectModel(Users)
     private model: typeof Users,
+    private mailService: Network,
   ) {}
 
   async list(): Promise<Response<UsersDso[]>> {
@@ -35,11 +39,20 @@ export class UsersService {
   }
 
   async store(user: CreateUsersDto): Promise<Response<UsersDso>> {
+    const token = await generateToken();//Token create
     const users = await this.model.create({
       ...user,
       password: await encrypt(user.password),
       isActive: true,
+      confirmationCode: token,
+      isEmailConfirmed: false,
     });
+    this.mailService.sendMail(
+      users.email,
+      'E-Mail Confirmation',
+      'Please Confirm your E-Mail through this',
+      token,
+    );
     return new Response<Users>(users);
   }
 
@@ -69,5 +82,21 @@ export class UsersService {
       },
     });
     return user;
+  }
+  async confirmEmail(token: string) {
+    const user = await this.model.findOne({
+      where: {
+        confirmationCode: token,
+        isActive: true,
+      },
+    });
+    const id = user.id;
+    if(user.isEmailConfirmed){
+      return new ErrorResponse(300, 'You have confirmed your E-Mail!')
+    }
+    await this.model.update(
+      { ...user, isEmailConfirmed: true },
+      { where: { id } },
+    );
   }
 }
