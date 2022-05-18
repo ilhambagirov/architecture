@@ -1,8 +1,7 @@
-export class ErrorResponse {
-  statusCode: number;
-  message: string;
+import { HttpException } from '@nestjs/common';
+
+export class ErrorResponse extends HttpException {
   constructor(statusCode: number, message: string) {
-    this.statusCode = statusCode;
-    this.message = message;
+    super(message, statusCode);
   }
 }

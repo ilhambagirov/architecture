@@ -1,13 +1,12 @@
 import { Injectable } from '@nestjs/common';
 import { InjectModel } from '@nestjs/sequelize';
-import { encrypt } from 'src/core/helper/cryption';
+import { encrypt, generateToken } from 'src/core/helper/cryption';
 import { Response } from 'src/core/concrete/response';
 import { UsersDso } from '../dsos/user.dso';
 import { CreateUsersDto } from '../dtos/create-users.dto';
 import { UpdateUsersDto } from '../dtos/update-users.dto';
 import { Users } from '../models/users.model';
 import { Network } from 'src/core/helper/send-email';
-import { generateToken } from 'src/core/helper/generate-token';
 import { ErrorResponse } from 'src/core/auth/common/error-response';
 
 @Injectable()
@@ -38,8 +37,12 @@ export class UsersService {
     return new Response<UsersDso>(user);
   }
 
-  async store(user: CreateUsersDto): Promise<Response<UsersDso>> {
-    const token = await generateToken();//Token create
+  async store(
+    user: CreateUsersDto,
+  ): Promise<Response<UsersDso> | ErrorResponse> {
+    const isEmailExist = await this.findByEmail(user.email);
+    if (isEmailExist) return new ErrorResponse(422, 'Email is already taken!');
+    const token = await generateToken(); //Token create
     const users = await this.model.create({
       ...user,
       password: await encrypt(user.password),
@@ -58,7 +61,7 @@ export class UsersService {
 
   async put(id: number, user: UpdateUsersDto) {
     const users = await this.model.update(
-      { ...user, isActive: true },
+      { ...user, password: await encrypt(user.password), isActive: true },
       { where: { id } },
     );
     return users;
@@ -67,7 +70,7 @@ export class UsersService {
   async delete(id: number) {
     const user = await this.model.findOne({ where: { id } });
     const deleted = await this.model.update(
-      { ...user, password: await encrypt(user.password), isActive: false },
+      { ...user, isActive: false },
       { where: { id } },
     );
     return deleted;
@@ -75,7 +78,6 @@ export class UsersService {
 
   public async findByEmail(email: string): Promise<Users | null> {
     const user = await this.model.findOne({
-      attributes: ['email', 'password'],
       where: {
         email: email,
         isActive: true,
@@ -91,8 +93,8 @@ export class UsersService {
       },
     });
     const id = user.id;
-    if(user.isEmailConfirmed){
-      return new ErrorResponse(300, 'You have confirmed your E-Mail!')
+    if (user.isEmailConfirmed) {
+      return new ErrorResponse(300, 'You have confirmed your E-Mail!');
     }
     await this.model.update(
       { ...user, isEmailConfirmed: true },

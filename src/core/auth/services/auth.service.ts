@@ -5,6 +5,7 @@ import { UsersService } from 'src/domains/users/services/services.service';
 import { LoginDto } from '../dtos/login.dto';
 import { compare } from '../../helper/cryption';
 import { AuthUserDso } from '../dsos/auth-user.dso';
+import { ErrorResponse } from '../common/error-response';
 
 @Injectable()
 export class AuthService {
@@ -29,6 +30,9 @@ export class AuthService {
     const userValid = await this.validateUser(dto);
     if (userValid) {
       const user = await this.getUserByEmail(dto);
+      if (!user.isEmailConfirmed) {
+        return new ErrorResponse(422, 'Please confirm your E-Mail!');
+      }
       const tokenData = new AuthUserDso(user);
       return await this.jwtService.signAsync({ ...tokenData });
     } else {
