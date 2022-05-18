@@ -7,6 +7,7 @@ import { UsersModule } from './domains/users/users.module';
 import { AuthModule } from './core/auth/auth.module';
 import { MailerModule } from '@nestjs-modules/mailer';
 import { mailConfig } from './core/config/mail.config';
+import { AppGateway } from './socket/app.gateway';
 
 
 @Module({
@@ -17,5 +18,6 @@ import { mailConfig } from './core/config/mail.config';
     UsersModule,
     AuthModule
   ],
+  providers: [AppGateway],
 })
 export class AppModule { }
