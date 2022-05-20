@@ -50,10 +50,11 @@ export class UsersService {
       confirmationCode: token,
       isEmailConfirmed: false,
     });
-    this.mailService.sendMail(
+    
+    this.mailService.sendMailTemplate(
       users.email,
       'E-Mail Confirmation',
-      'Please Confirm your E-Mail through this',
+      new Response<UsersDso>(users),
       token,
     );
     return new Response<Users>(users);
